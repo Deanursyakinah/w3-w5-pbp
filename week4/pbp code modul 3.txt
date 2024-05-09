@@ -1,0 +1,301 @@
+func InsertNewUser(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	var err error
+	err = r.ParseForm()
+	if err != nil {
+		fmt.Println("Error parsing form data:", err)
+		return
+	}
+
+	if r.Form.Get("id") == "" || r.Form.Get("name") == "" || r.Form.Get("age") == "" || r.Form.Get("address") == "" {
+		fmt.Println("Error: Incomplete data provided")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		fmt.Println("Error starting transaction:", err)
+		return
+	}
+	defer tx.Rollback()
+
+	query := "INSERT INTO users (id, name, age, address) VALUES (?,?, ?, ?)"
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		fmt.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	var users []m.User
+	var response m.UsersResponse
+	_, err = stmt.Exec(r.Form.Get("id"), r.Form.Get("name"), r.Form.Get("age"), r.Form.Get("address"))
+	if err != nil {
+		fmt.Println("Error executing SQL statement:", err)
+		w.Header().Set("Content-Type", "application/json")
+		response.Status = 400
+		response.Message = "Bad Request"
+		response.Data = users
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		fmt.Println("Error committing transaction:", err)
+		return
+	}
+
+	fmt.Fprintf(w, "User inserted successfully!")
+}
+
+
+
+func InsertNewUser(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	var err error // mendeklarasikan err di sini
+	err = r.ParseForm()
+	if err != nil {
+		fmt.Println("Error parsing form data:", err)
+		return
+	}
+
+	query := "INSERT INTO users (id, name, age, address) VALUES (?, ?, ?, ?)"
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		fmt.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement with data from the form
+	_, err = stmt.Exec(r.Form.Get("id"), r.Form.Get("name"), r.Form.Get("age"), r.Form.Get("address")) // fix typo in "address"
+	if err != nil {
+		fmt.Println("Error executing SQL statement:", err)
+		return
+	}
+	// If execution successful, respond with success message
+	fmt.Fprintf(w, "User inserted successfully!")
+}
+
+
+user punya
+func InsertNewUser(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
+		fmt.Println("Error parsing form data:", err)
+		return
+	}
+
+	id := r.Form.Get("id")
+	name := r.Form.Get("name")
+	age := r.Form.Get("age")
+	address := r.Form.Get("address")
+	if name == "" || age == "" || address == "" {
+		http.Error(w, "Incomplete data provided", http.StatusBadRequest)
+		return
+	}
+
+	if len(r.Form) >= 4 {
+		http.Error(w, "Unexpected fields in form data", http.StatusBadRequest)
+		fmt.Println("Unexpected fields in form data")
+		return
+	}
+
+	ageInt, err := strconv.Atoi(age)
+	if err != nil {
+		http.Error(w, "Invalid age", http.StatusBadRequest)
+		return
+	}
+
+	query := "INSERT INTO users (id, name, age, address) VALUES (?, ?, ?, ?)"
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		http.Error(w, "Error preparing SQL statement", http.StatusInternalServerError)
+		fmt.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(id, name, ageInt, address)
+	if err != nil {
+		http.Error(w, "Error executing SQL statement", http.StatusInternalServerError)
+		fmt.Println("Error executing SQL statement:", err)
+		return
+	}
+
+	fmt.Fprintf(w, "new user berhasil di insert!")
+}
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	name := r.FormValue("name")
+	age := r.FormValue("age")
+	address := r.FormValue("address")
+	userID := mux.Vars(r)["id"]
+
+	// Memeriksa keberadaan ID pengguna
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE id = ?", userID).Scan(&count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if count == 0 {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	query := "UPDATE users SET name = ?, age = ?, address = ? WHERE id = ?"
+
+	_, err = db.Exec(query, name, age, address, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprintf(w, "data user berhasil di update!")
+}
+
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	userID := mux.Vars(r)["id"]
+
+	// Memeriksa keberadaan ID pengguna
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE id = ?", userID).Scan(&count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if count == 0 {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	query := "DELETE FROM users WHERE id = ?"
+
+	_, err = db.Exec(query, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprintf(w, "data user berhasil dihapus!")
+}
+
+product puny
+func InsertNewProduct(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	// Parsing data formulir
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Error parsing form data", http.StatusInternalServerError)
+		fmt.Println("Error parsing form data:", err)
+		return
+	}
+
+	id := r.Form.Get("id")
+	name := r.Form.Get("name")
+	price := r.Form.Get("price")
+
+	if name == "" || price == "" {
+		http.Error(w, "Incomplete data provided", http.StatusBadRequest)
+		return
+	}
+
+	// Memeriksa apakah ada bidang lain selain yang diperlukan
+	if len(r.Form) >= 3 {
+		http.Error(w, "Unexpected fields in form data", http.StatusBadRequest)
+		fmt.Println("Unexpected fields in form data")
+		return
+	}
+
+	// Menyiapkan dan mengeksekusi pernyataan SQL
+	query := "INSERT INTO products (id, name, price) VALUES (?, ?, ?)"
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		http.Error(w, "Error preparing SQL statement", http.StatusInternalServerError)
+		fmt.Println("Error preparing SQL statement:", err)
+		return
+	}
+	defer stmt.Close()
+
+	// Menjalankan pernyataan SQL dengan data dari formulir
+	_, err = stmt.Exec(id, name, price)
+	if err != nil {
+		http.Error(w, "Error executing SQL statement", http.StatusInternalServerError)
+		fmt.Println("Error executing SQL statement:", err)
+		return
+	}
+
+	fmt.Fprintf(w, "new products berhasil di insert!")
+}
+
+func UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	name := r.FormValue("name")
+	price := r.FormValue("price")
+	productID := mux.Vars(r)["id"]
+
+	// Memeriksa keberadaan ID pengguna
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM products WHERE id = ?", productID).Scan(&count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if count == 0 {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	query := "UPDATE products SET name = ?, price = ? WHERE id = ?"
+
+	_, err = db.Exec(query, name, price, productID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprintf(w, "data product berhasil di update!")
+}
+
+func DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	db := connect()
+	defer db.Close()
+
+	productID := mux.Vars(r)["id"]
+
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM products WHERE id = ?", productID).Scan(&count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if count == 0 {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	query := "DELETE FROM products WHERE id = ?"
+
+	_, err = db.Exec(query, productID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprintf(w, "data product berhasil dihapus!")
+}
